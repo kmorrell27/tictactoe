@@ -1,0 +1,324 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>Tic-Tac-Toe</title>
+    <script type="text/javascript">
+      var gameBoard = new Array(9);
+      // Used by the CPU
+      var bestMove;
+      var gameStillRunning = true;
+      var numberOfMoves = 0;
+
+      // For Halloween!
+      var spookyMode = false;
+
+      var xInnerHtml = 'X';
+      var oInnerHtml = 'O';
+
+      var xWinString = 'X';
+      var oWinString = 'O';
+
+      function putX(spaceNum) {
+          if (!gameStillRunning) {
+              // The game's over. No more moves.
+              return;
+          }
+          if (!gameBoard[spaceNum]) {
+              numberOfMoves++;
+              var spaceEl = document.getElementById("space" + spaceNum);
+              spaceEl.innerHTML = xInnerHtml;
+              gameBoard[spaceNum] = 'X';
+              var winner = getWinner(gameBoard, numberOfMoves);
+              if (winner) {
+                  gameOver(winner);
+              } else {
+                  // No winner yet, so now it's the computer's turn
+                  calculateCircleMove();
+              }
+          }
+      }
+
+      function getWinner(board, filledSquares) {
+          for (var i = 0; i < 3; i++) {
+              // Check the horizontal condition, and check that the row
+              // actually has a value and isn't null.
+              if (board[i * 3] &&
+                  board[i * 3] == board[(i * 3) + 1] &&
+                  board[(i * 3) + 1] == board[(i * 3) + 2]) {
+                  return board[i * 3];
+              }
+              // Check the vertical condition, and again make sure that the
+              // column isn't all null.
+              else if (board[i] &&
+                       board[i] == board[i + 3] &&
+                       board[i + 3] == board[i + 6]) {
+                  return board[i];
+              }
+          }
+
+          // The diagonals need to be handled separately.
+          if (board[0] && board[0] == board[4] && board[4] == board[8]) {
+              return board[0];
+          } else if (board[2] && board[2] == board[4] && board[4] == board[6]) {
+              return board[2];
+          } else if (filledSquares == 9) {
+              // If all squares are filled, and none of the other win conditions
+              // were met, it's a draw.
+              return 'draw';
+          }
+      }
+
+      function calculateCircleMove() {
+          negamax(gameBoard, 'O', 0);
+          gameBoard[bestMove] = 'O';
+          var spaceEl = document.getElementById('space' + bestMove);
+          spaceEl.innerHTML = oInnerHtml;
+          numberOfMoves++;
+          if (getWinner(gameBoard, numberOfMoves) == 'O') {
+              gameOver('O');
+          }
+      }
+
+      function negamax(negamaxBoard, currentPlayer, depth) {
+          if (currentPlayer == 'O') {
+              var multiplier = 1;
+              var otherPlayer = 'X';
+          } else {
+              var multiplier = -1;
+              var otherPlayer = 'O';
+          }
+
+          // Pass in the current number of made moves plus the depth we're at.
+          // This way the getWinner function can easily tell if the board is
+          // full.
+          var winner = getWinner(negamaxBoard, numberOfMoves + depth);
+          if (winner == 'X') {
+              return -1 * multiplier;
+          } else if (winner == 'O') {
+              return 1 * multiplier;
+          } else if (winner == 'draw') {
+              return 0;
+          } else {
+              var maxValue = -2;
+              for (var i = 0; i < 9; i++) {
+                  if (!negamaxBoard[i]) {
+                      // There's a valid move here.
+                      var newBoard = negamaxBoard.slice(0);
+                      newBoard[i] = currentPlayer;
+                      var result = -1 * negamax(newBoard, otherPlayer, depth + 1);
+                      if (result > maxValue) {
+                          maxValue = result;
+
+                          // We're only interested in the best next move, not
+                          // one 6 moves down the line. Circle always calls
+                          // this function initially, so I know that any move
+                          // at a depth of zero is for the computer player.
+                          if (depth == 0) {
+                              bestMove = i;
+                          }
+                      }
+                  }
+              }
+              return maxValue;
+          }
+      }
+
+      function resetGame() {
+          gameBoard = new Array(9);
+          for (var i = 0; i < 9; i++) {
+              var spaceEl = document.getElementById('space' + i);
+              spaceEl.innerHTML = '';
+          }
+
+          var resetButton = document.getElementById('resetButton');
+          resetButton.className = 'hidden';
+
+          var gameStatusSpan = document.getElementById('gameStatusSpan');
+          gameStatusSpan.innerHTML = '';
+
+          // And allow the game to be played again
+          gameStillRunning = true;
+          numberOfMoves = 0;
+      }
+
+      function spookyToggle() {
+          if (spookyMode) {
+              // I need to hang on to these old values to search for them in
+              // the board when switching back to normal mode.
+              var oldX = xInnerHtml;
+              var oldO = oInnerHtml;
+              xInnerHtml = 'X';
+              oInnerHtml = 'O';
+              xWinString = 'X';
+              oWinString = 'O';
+
+          } else {
+              // I need to hang on to these old values to search for them in
+              // the board when switching to spooky mode.
+              var oldX = xInnerHtml;
+              var oldO = oInnerHtml;
+              xInnerHtml = '<img src="assets/icon_34530.png" class="icon">';
+              oInnerHtml = '<img src="assets/icon_23676.png" class="icon">';
+              xWinString = 'Skull';
+              oWinString = 'Pumpkin';
+          }
+
+          for (var i = 0; i < 9; i++) {
+              var spaceEl = document.getElementById('space' + i);
+              if (spaceEl.innerHTML == oldX) {
+                  spaceEl.innerHTML = xInnerHtml;
+              } else if (spaceEl.innerHTML == oldO) {
+                  spaceEl.innerHTML = oInnerHtml;
+              }
+          }
+          spookyMode = !spookyMode;
+      }
+
+      function gameOver(winner) {
+          var statusSpan = document.getElementById('gameStatusSpan');
+
+          if (winner == 'O') {
+              statusSpan.innerHTML = oWinString + ' wins!';
+          } else if (winner == 'X') {
+              statusSpan.innerHTML = xWinString + ' wins!';
+          } else {
+              statusSpan.innerHTML = 'Draw!';
+          }
+          var resetButton = document.getElementById('resetButton');
+          resetButton.className = 'clouds-flat-button';
+          gameStillRunning = false;
+      }
+
+    </script>
+
+    <link href='http://fonts.googleapis.com/css?family=Open+Sans' rel='stylesheet' type='text/css'>
+
+    <style type="text/css">
+      div.board {
+          height: 310px;
+          width: 310px;
+          background-color: #888888;
+      }
+      div.row {
+          height: 105px;
+      }
+      a.button {
+          float: left;
+          background-color: white;
+          text-decoration: none;
+          margin-right: 5px;
+          height: 100px;
+          width: 100px;
+          font-family:'Open Sans', sans-serif;
+          font-size: 80px;
+          color: black;
+          text-align: center;
+          line-height: 1em;
+      }
+      a.right {
+          margin-right: 0;
+      }
+      div.statusDiv {
+          background-color: #cccccc;
+          border: 1px solid;
+          height: 90px;
+          margin: 20px 0;
+          padding: 20px;
+          text-align: center;
+          width: 270px;
+      }
+      .hidden {
+          display:none;
+      }
+      .resetButton {
+          display:block;
+          margin: 0 auto;
+
+      }
+
+      .icon {
+          height: 80px;
+          width: 80px;
+      }
+
+      /* From http://cssdeck.com/labs/beautiful-flat-buttons */
+      .clouds-flat-button {
+          position: relative;
+          vertical-align: top;
+          width: 100%;
+          height: 60px;
+          padding: 0;
+          font-size: 22px;
+          color:#454545;
+          text-align: center;
+          text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+          background: #ecf0f1;
+          border: 0;
+          border-bottom: 2px solid #dadedf;
+          cursor: pointer;
+          -webkit-box-shadow: inset 0 -2px #dadedf;
+          box-shadow: inset 0 -2px #dadedf;
+      }
+
+      .clouds-flat-button:active {
+          top: 1px;
+          outline: none;
+          -webkit-box-shadow: none;
+          box-shadow: none;
+      }
+
+      .pumpkin-flat-button {
+          position: relative;
+          vertical-align: top;
+          width: 310px;
+          height: 60px;
+          padding: 0;
+          font-size: 22px;
+          color: white;
+          text-align: center;
+          text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+          background: #d35400;
+          border: 0;
+          border-bottom: 2px solid #c54e00;
+          cursor: pointer;
+          -webkit-box-shadow: inset 0 -2px #c54e00;
+          box-shadow: inset 0 -2px #c54e00;
+      }
+      .pumpkin-flat-button:active {
+          top: 1px;
+          outline: none;
+          -webkit-box-shadow: none;
+          box-shadow: none;
+      }
+    </style>
+  </head>
+
+  <body>
+    <p>Click anywhere to start!</p>
+    <div class="board">
+      <div class="row">
+        <a href="" id="space0" class="button" onclick="putX(0); return false;"></a>
+        <a href="" id="space1" class="button" onclick="putX(1); return false;"></a>
+        <a href="" id="space2" class="button right" onclick="putX(2); return false;"></a>
+      </div>
+      <div class="row">
+        <a href="" id="space3" class="button" onclick="putX(3); return false;"></a>
+        <a href="" id="space4" class="button" onclick="putX(4); return false;"></a>
+        <a href="" id="space5" class="button right" onclick="putX(5); return false;"></a>
+      </div>
+      <div class="row">
+        <a href="" id="space6" class="button" onclick="putX(6); return false;"></a>
+        <a href="" id="space7" class="button" onclick="putX(7); return false;"></a>
+        <a href="" id="space8" class="button right" onclick="putX(8); return false;"></a>
+      </div>
+    </div>
+    <div class="statusDiv">
+      <span id="gameStatusSpan"></span>
+      <button id="resetButton" onclick="resetGame()" class="hidden">Try again</button>
+    </div>
+    <button id="spookyMode" class="pumpkin-flat-button" onclick="spookyToggle()">Toggle spooky mode</button>
+    <p>Skull designed by <a href="http://www.thenounproject.com/SuperAtic">SuperAtic LABS</a> from the <a href="http://www.thenounproject.com">Noun Project</a></p>
+    <p>Jack O Lantern designed by <a href="http://www.thenounproject.com/coexsystem">John Leonard</a> from the <a href="http://www.thenounproject.com">Noun Project</a></p>
+  </body>
+</html>
